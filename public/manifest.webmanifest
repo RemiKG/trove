@@ -1,0 +1,16 @@
+{
+  "name": "Trove — keep the trove",
+  "short_name": "Trove",
+  "description": "An oral-history memory agent. Sit the person you love down and just let them talk; Trove keeps a whole life, reconciles the tellings, forgets the noise, and hands any piece of it back to you years later.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#EDE6D8",
+  "theme_color": "#EDE6D8",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

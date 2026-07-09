@@ -1,0 +1,34 @@
+{
+  "name": "trove",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Trove — an oral-history memory agent. Sit the person you love down and just let them talk; Trove keeps every name, place and story, reconciles the tellings that don't match, decides what to ask next, forgets the noise on purpose, and hands any piece of a whole life back to you years later, under a hard token budget. A real persistent-memory agent where a memory's status is its surface — set, gilded, dusted, or lit.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "node scripts/seed.mjs",
+    "mcp": "node mcp/server.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^15.5.20",
+    "pg": "^8.22.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}
