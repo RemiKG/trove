@@ -8,6 +8,7 @@ import { nextQuestion, coveragePct } from '../memory/interview';
 import { numbersView } from '../memory/numbers';
 import { tesseraTokens } from '../memory/types';
 import { modeInfo } from '../config';
+import { pronounsFor } from '../pronouns';
 
 export interface RowView {
   id: string; type: string; name: string; detail: string; quote?: string;
@@ -39,7 +40,7 @@ export function keepsakeData(b: TroveBundle) {
     .slice(0, 3)
     .map((t) => t.quote as string);
   const totals = troveTotals(b);
-  const caption = `Reconstructed from ${b.trove.currentSession} conversations · ${totals.gilded} memories gilded as canon · only what ${b.trove.personName === b.trove.fullName ? 'they' : 'she'} actually said · the gaps left as gaps, never invented.`;
+  const caption = `Reconstructed from ${b.trove.currentSession} conversations · ${totals.gilded} memories gilded as canon · only what ${pronounsFor(b.trove.relationship).subj} actually said · the gaps left as gaps, never invented.`;
   return { quotes, caption };
 }
 

@@ -6,6 +6,7 @@ import Wordmark from '@/components/mosaic/Wordmark';
 import Portrait from '@/components/mosaic/Portrait';
 import { LoadFailed } from '@/components/ui';
 import { api, type TroveView } from '@/lib/client/api';
+import { pronounsFor } from '@/lib/pronouns';
 import { downloadPortraitPNG, copyLink } from '@/lib/client/download';
 
 export default function KeepsakePage() {
@@ -19,6 +20,7 @@ export default function KeepsakePage() {
   if (!view) return <div className="page"><div className="wrap section" style={{ textAlign: 'center', paddingTop: 120 }}><span className="spinner" style={{ width: 28, height: 28 }} /></div></div>;
   const t = view.trove;
   const k = view.keepsake;
+  const p = pronounsFor(t.relationship);
 
   return (
     <div className="page">
@@ -40,7 +42,7 @@ export default function KeepsakePage() {
                 <div className="inner"><Portrait seed={t.seed} coverage={1} w={520} h={640} tile={12} /></div>
               </div>
               <div>
-                <div className="carved" style={{ fontSize: 12.5, color: 'var(--grout-45)', letterSpacing: '.18em' }}>Her life, in her words</div>
+                <div className="carved" style={{ fontSize: 12.5, color: 'var(--grout-45)', letterSpacing: '.18em' }}>{p.Pos} life, in {p.pos} words</div>
                 <h1 className="carved" style={{ fontSize: 'clamp(30px,4.4vw,46px)', margin: '10px 0 4px', letterSpacing: '.04em', color: 'var(--grout)' }}>
                   {keepsakeName(t.fullName, t.personName)}
                 </h1>
@@ -48,7 +50,7 @@ export default function KeepsakePage() {
                   {t.bornYear ?? '—'} &nbsp;—&nbsp; {t.diedYear ?? '—'}
                 </div>
                 <div className="stack" style={{ gap: 16 }}>
-                  {(k.quotes.length ? k.quotes : ['Her own words are still being gathered — come back after a few tellings.']).map((qq: string, i: number) => (
+                  {(k.quotes.length ? k.quotes : [`${p.Pos} own words are still being gathered — come back after a few tellings.`]).map((qq: string, i: number) => (
                     <div key={i} className="inscription" style={{ fontSize: 21, borderLeftWidth: 3, paddingLeft: 18 }}>{quoted(qq)}</div>
                   ))}
                 </div>

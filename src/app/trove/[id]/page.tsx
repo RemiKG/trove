@@ -5,6 +5,7 @@ import TopBar from '@/components/TopBar';
 import Portrait from '@/components/mosaic/Portrait';
 import { Chip, RampLegend, LoadFailed } from '@/components/ui';
 import { api, fmt, whoSub, type TroveView } from '@/lib/client/api';
+import { pronounsFor } from '@/lib/pronouns';
 
 const CHIP_LABEL: Record<string, string> = {
   person: 'person', place: 'place', event: 'event', date: 'date',
@@ -97,7 +98,7 @@ export default function MosaicPage() {
 
             {/* Ask + answer + totals */}
             <div className="stack" style={{ gap: 18 }}>
-              <div className="label-mono">Ask her trove anything</div>
+              <div className="label-mono">Ask {pronounsFor(t.relationship).pos} trove anything</div>
               <div className="askbar">
                 <input
                   value={q}

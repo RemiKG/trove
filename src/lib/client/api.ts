@@ -1,6 +1,7 @@
 'use client';
 /* Typed fetch helpers for the UI. No hardcoded host — always same-origin relative paths. */
 import type { TroveView } from '../server/view';
+import { pronounsFor } from '../pronouns';
 
 async function jf<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } });
@@ -56,5 +57,5 @@ export function relTime(ms: number): string {
 }
 
 export function whoSub(v: TroveView): string {
-  return `her trove · ${v.trove.currentSession} sessions · last opened ${relTime(v.trove.lastOpenedAt)}`;
+  return `${pronounsFor(v.trove.relationship).pos} trove · ${v.trove.currentSession} sessions · last opened ${relTime(v.trove.lastOpenedAt)}`;
 }

@@ -6,6 +6,7 @@ import Portrait from '@/components/mosaic/Portrait';
 import { Chip, RampLegend, MicIcon, LoadFailed } from '@/components/ui';
 import { useSpeech } from '@/lib/client/speech';
 import { api, fmt, type TroveView } from '@/lib/client/api';
+import { pronounsFor } from '@/lib/pronouns';
 
 interface Line { role: 'trove' | 'teller'; text: string; chips?: { type: string; name: string }[]; setCount?: number }
 
@@ -88,7 +89,7 @@ export default function TellingPage() {
     <div className="page">
       <div className="grain soft" />
       <div className="stage">
-        <TopBar active="telling" troveId={id} who={{ personName: t.personName, seed: t.seed, sub: `session ${t.currentSession} · she's talking` }} />
+        <TopBar active="telling" troveId={id} who={{ personName: t.personName, seed: t.seed, sub: `session ${t.currentSession} · ${pronounsFor(t.relationship).talking}` }} />
         <div className="wrap section">
           <div className="grid-tell">
             {/* conversation rail */}

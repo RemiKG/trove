@@ -7,6 +7,7 @@ import Swatch from '@/components/mosaic/Swatch';
 import BrushGlyph from '@/components/mosaic/BrushCursor';
 import { Chip, LoadFailed } from '@/components/ui';
 import { api, fmt, type TroveView } from '@/lib/client/api';
+import { pronounsFor } from '@/lib/pronouns';
 
 export default function RestorationPage() {
   const { id } = useParams<{ id: string }>();
@@ -63,12 +64,13 @@ export default function RestorationPage() {
   if (failed) return <LoadFailed />;
   if (!view || !totals) return <div className="page"><div className="wrap section" style={{ textAlign: 'center', paddingTop: 120 }}><span className="spinner" style={{ width: 28, height: 28 }} /></div></div>;
   const t = view.trove;
+  const p = pronounsFor(t.relationship);
 
   return (
     <div className="page">
       <div className="grain soft" />
       <div className="stage">
-        <TopBar active="restoration" troveId={id} who={{ personName: t.personName, seed: t.seed, sub: 'her trove · power-user room' }} />
+        <TopBar active="restoration" troveId={id} who={{ personName: t.personName, seed: t.seed, sub: `${p.pos} trove · power-user room` }} />
         <div className="wrap section">
           <div className="eyebrow">The Restoration</div>
           <h1 className="h-emo" style={{ fontSize: 'clamp(34px,5vw,46px)', margin: '10px 0 12px' }}>Tend the mosaic.</h1>
@@ -83,7 +85,7 @@ export default function RestorationPage() {
             <div className="stack" style={{ gap: 20 }}>
               <div className="card pad">
                 <div className="between" style={{ marginBottom: 8 }}>
-                  <span className="label-mono">Every tessera she holds · sorted by corroboration</span>
+                  <span className="label-mono">Every tessera {p.subj} holds · sorted by corroboration</span>
                   <span className="label-mono" style={{ textTransform: 'none' }}>{fmt(view.rowsTotal)} total</span>
                 </div>
                 <div className="trow head"><span /><span>Memory</span><span>Type</span><span>Told</span><span className="col-hide">Salience</span><span /></div>
@@ -123,7 +125,7 @@ export default function RestorationPage() {
                   ))}
                 </div>
                 <div className="label-mono" style={{ textTransform: 'none', marginTop: 10 }}>
-                  remember · recall · reconcile · next-question · gild · forget — any agent can call her memory.
+                  remember · recall · reconcile · next-question · gild · forget — any agent can call {p.pos} memory.
                 </div>
               </div>
             </div>
@@ -184,7 +186,7 @@ export default function RestorationPage() {
                 <div className="label-mono" style={{ marginBottom: 6 }}>When you’re ready</div>
                 <div className="h-emo" style={{ fontSize: 24, marginBottom: 6 }}>Hand it to family.</div>
                 <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.5, marginTop: 0 }}>
-                  Export the finished portrait and her life, in her own words — a keepsake the family passes around.
+                  Export the finished portrait and {p.pos} life, in {p.pos} own words — a keepsake the family passes around.
                 </p>
                 <button className="btn gold" onClick={() => router.push(`/trove/${id}/keepsake`)}>Make a keepsake →</button>
               </div>
