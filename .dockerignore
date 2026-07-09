@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+.git
+.gitignore
+.vercel
+.trove-data
+.env*
+!.env.example
+*.local
+*.pem
+coverage
+npm-debug.log*
+tsconfig.tsbuildinfo
+Dockerfile
+.dockerignore

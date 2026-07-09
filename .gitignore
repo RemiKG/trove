@@ -22,3 +22,5 @@ tsconfig.tsbuildinfo
 *.pem
 /coverage
 npm-debug.log*
+
+.vercel
