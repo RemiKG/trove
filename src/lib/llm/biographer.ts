@@ -20,7 +20,7 @@ export async function listen(text: string, ctx: { knownNames: string[]; personNa
         `"type" ∈ ${TESSERA_TYPES.join(' | ')}.`,
         '"name" = a short label (e.g. "The bakery on Oak Street"). "detail" = one resolved sentence.',
         '"quote" = the person\'s ACTUAL words if present (never paraphrase into a fake quote).',
-        '"subject" = the entity a claim is about ("the bakery"); "value" = the specific claim ("Oak").',
+        '"subject" = the specific attribute a claim is about ("the bakery\'s street", "birth year", "the parrot\'s name") — NOT just the person\'s name; "value" = the specific claim itself, short ("Oak", "1941", "Sergeant Pepper").',
         '   Two different values for the same subject across tellings are a CONTRADICTION Trove will reconcile — always fill subject+value for streets, years, and relations.',
         '"salience" 0..1 (how load-bearing), "valence" -1..1 (emotional weight).',
         'Set "canonical" true ONLY for a clearly load-bearing, emotional, corroborated fact.',
@@ -32,7 +32,7 @@ export async function listen(text: string, ctx: { knownNames: string[]; personNa
           { role: 'system', content: sys },
           { role: 'user', content: text },
         ],
-        { model: qwen.models.listener, temperature: 0.2, response_format: { type: 'json_object' }, max_tokens: 900 },
+        { model: qwen.models.listener, temperature: 0.2, response_format: { type: 'json_object' }, max_tokens: 900, extra_body: { enable_thinking: false } },
       );
       const parsed = JSON.parse(content);
       const recs = Array.isArray(parsed) ? parsed : parsed.records;

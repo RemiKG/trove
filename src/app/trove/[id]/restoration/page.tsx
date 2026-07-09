@@ -5,7 +5,7 @@ import Link from 'next/link';
 import TopBar from '@/components/TopBar';
 import Swatch from '@/components/mosaic/Swatch';
 import BrushGlyph from '@/components/mosaic/BrushCursor';
-import { Chip } from '@/components/ui';
+import { Chip, LoadFailed } from '@/components/ui';
 import { api, fmt, type TroveView } from '@/lib/client/api';
 
 export default function RestorationPage() {
@@ -19,6 +19,7 @@ export default function RestorationPage() {
   const [preview, setPreview] = useState<any>(null);
   const [memoryOn, setMemoryOn] = useState(true);
   const [tools, setTools] = useState<any[]>([]);
+  const [failed, setFailed] = useState(false);
   const pvT = useRef<any>(null);
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function RestorationPage() {
       setForgetting(v.trove.settings.forgetting); setMemoryOn(v.trove.settings.memoryOn);
       setPreview({ dusted: v.totals.dusted, gilded: v.totals.gilded });
       setTools(v.toolLog);
-    }).catch(() => {});
+    }).catch(() => setFailed(true));
   }, [id]);
 
   async function act(tid: string, action: 'gild' | 'lift' | 'brush') {
@@ -59,6 +60,7 @@ export default function RestorationPage() {
     await api.settings(id, { memoryOn: on });
   }
 
+  if (failed) return <LoadFailed />;
   if (!view || !totals) return <div className="page"><div className="wrap section" style={{ textAlign: 'center', paddingTop: 120 }}><span className="spinner" style={{ width: 28, height: 28 }} /></div></div>;
   const t = view.trove;
 

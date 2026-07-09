@@ -4,6 +4,7 @@ import { buildTroveView } from '@/lib/server/view';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 /** Ensure the pre-seeded example ("Nana") exists and return its id. */
 export async function GET() {

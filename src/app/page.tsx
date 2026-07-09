@@ -5,7 +5,7 @@ import Link from 'next/link';
 import TopBar from '@/components/TopBar';
 import Wordmark from '@/components/mosaic/Wordmark';
 import Portrait from '@/components/mosaic/Portrait';
-import { MicIcon, BrainBadge } from '@/components/ui';
+import { MicIcon, BrainBadge, EphemeralNote } from '@/components/ui';
 import { useSpeech } from '@/lib/client/speech';
 import { api, fmt, type TroveView, type TroveSummary } from '@/lib/client/api';
 
@@ -24,14 +24,18 @@ export default function Door() {
     api.mode().then(setMode).catch(() => {});
   }, []);
 
+  const [beginErr, setBeginErr] = useState(false);
+
   async function begin() {
     const n = name.trim();
     if (!n || busy) return;
     setBusy(true);
+    setBeginErr(false);
     try {
       const { id } = await api.createTrove(n);
       router.push(`/trove/${id}/telling?fresh=1`);
     } catch {
+      setBeginErr(true);
       setBusy(false);
     }
   }
@@ -94,6 +98,11 @@ export default function Door() {
               <div className="label-mono" style={{ marginTop: 8, marginLeft: 6 }}>
                 {speech.listening ? '● listening — let them talk' : 'hold to talk · or type'}
               </div>
+              {beginErr && (
+                <p className="muted" style={{ fontSize: 14, marginTop: 10, color: 'var(--grout)' }}>
+                  The trove couldn’t be created just now — please try again.
+                </p>
+              )}
 
               <div style={{ display: 'flex', gap: 10, marginTop: 26, maxWidth: 560 }}>
                 <span className="dot lapis" style={{ marginTop: 6, flex: 'none' }} />
@@ -103,6 +112,8 @@ export default function Door() {
                   not a séance.
                 </p>
               </div>
+
+              <EphemeralNote mode={mode} />
             </div>
 
             {/* Right — the example */}

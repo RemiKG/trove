@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Wordmark from '@/components/mosaic/Wordmark';
 import Portrait from '@/components/mosaic/Portrait';
+import { LoadFailed } from '@/components/ui';
 import { api, type TroveView } from '@/lib/client/api';
 import { downloadPortraitPNG, copyLink } from '@/lib/client/download';
 
@@ -11,8 +12,10 @@ export default function KeepsakePage() {
   const { id } = useParams<{ id: string }>();
   const [view, setView] = useState<TroveView | null>(null);
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  useEffect(() => { api.view(id).then(setView).catch(() => {}); }, [id]);
+  useEffect(() => { api.view(id).then(setView).catch(() => setFailed(true)); }, [id]);
+  if (failed) return <LoadFailed />;
   if (!view) return <div className="page"><div className="wrap section" style={{ textAlign: 'center', paddingTop: 120 }}><span className="spinner" style={{ width: 28, height: 28 }} /></div></div>;
   const t = view.trove;
   const k = view.keepsake;

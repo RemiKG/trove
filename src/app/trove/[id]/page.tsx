@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import TopBar from '@/components/TopBar';
 import Portrait from '@/components/mosaic/Portrait';
-import { Chip, RampLegend } from '@/components/ui';
+import { Chip, RampLegend, LoadFailed } from '@/components/ui';
 import { api, fmt, whoSub, type TroveView } from '@/lib/client/api';
 
 const CHIP_LABEL: Record<string, string> = {
@@ -17,6 +17,7 @@ export default function MosaicPage() {
   const [q, setQ] = useState('');
   const [ans, setAns] = useState<any>(null);
   const [asking, setAsking] = useState(false);
+  const [failed, setFailed] = useState(false);
   const auto = useRef(false);
 
   useEffect(() => {
@@ -28,16 +29,21 @@ export default function MosaicPage() {
         setQ(dq);
         doAsk(dq);
       }
-    }).catch(() => {});
+    }).catch(() => setFailed(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   async function doAsk(question: string) {
     if (!question.trim()) return;
     setAsking(true);
-    try { setAns(await api.ask(id, question)); } finally { setAsking(false); }
+    try {
+      setAns(await api.ask(id, question));
+    } catch {
+      setAns({ error: true, answer: 'That question didn’t make it through — the recall call failed. Please ask again.' });
+    } finally { setAsking(false); }
   }
 
+  if (failed) return <LoadFailed />;
   if (!view) return <Loading />;
   const t = view.trove;
   const occ = t.occasion;
@@ -104,7 +110,13 @@ export default function MosaicPage() {
                 </button>
               </div>
 
-              {ans && (
+              {ans && ans.error && (
+                <div className="card pad">
+                  <div className="inscription" style={{ fontSize: 18 }}>{ans.answer}</div>
+                </div>
+              )}
+
+              {ans && !ans.error && (
                 <div className="card pad">
                   <div className="qrow" style={{ marginBottom: 12 }}>
                     <span className="bul"><span className="dot gild" /></span>

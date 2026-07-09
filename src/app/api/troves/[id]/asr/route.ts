@@ -4,6 +4,7 @@ import { transcribe } from '@/lib/llm/qwen';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 /** The "just let them talk" server seam — Qwen ASR (qwen3-asr-flash / fun-asr) transcribes a
     publicly-reachable audio URL when a key is set. The browser also does live on-device speech

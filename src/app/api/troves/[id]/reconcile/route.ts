@@ -6,6 +6,7 @@ import { troveTotals } from '@/lib/memory/views';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 /** Resolve an open contradiction to the true version — gild the truth, dust the slip. */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {

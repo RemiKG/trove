@@ -56,13 +56,20 @@ export interface ModeInfo {
   rerankModel: string;
   imageModel: string;
   store: 'file' | 'postgres';
+  /** true when the file store sits on ephemeral serverless disk (e.g. a Vercel mirror) —
+      troves there may not survive between visits. The durable deployment has a real disk. */
+  ephemeral: boolean;
+  durableUrl: string | null;
   note: string;
 }
 
 export function modeInfo(): ModeInfo {
   const brain = brainMode();
+  const ephemeral = !!process.env.VERCEL && !process.env.DATABASE_URL;
   return {
     brain,
+    ephemeral,
+    durableUrl: ephemeral ? process.env.TROVE_DURABLE_URL || 'http://47.84.113.80:3009' : null,
     biographerModel: brain === 'qwen' ? qwen.models.biographer : 'trove-offline-biographer',
     listenerModel: brain === 'qwen' ? qwen.models.listener : 'trove-offline-listener',
     reconcilerModel: brain === 'qwen' ? qwen.models.reconciler : 'trove-offline-reconciler',

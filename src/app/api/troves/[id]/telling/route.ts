@@ -10,6 +10,7 @@ import { coveragePct } from '@/lib/memory/interview';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 /** A live telling turn: capture → typed extraction → merge/corroborate → detect a contradiction
     → decide the next best question. All real, all persisted. */

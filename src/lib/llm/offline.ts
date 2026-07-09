@@ -9,13 +9,20 @@ import type { TesseraType } from '../memory/types';
 
 const REL_WORDS = /\b(mother|mamma|mum|mom|father|papa|dad|brother|sister|husband|wife|son|daughter|grandmother|grandfather|grandma|grandpa|nana|nonna|uncle|aunt|cousin|neighbou?r|friend)\b/i;
 const PLACE_NOUN = /\b(bakery|shop|store|church|house|home|farm|school|hospital|factory|mill|market|harbou?r|port|village|town|city|kitchen|garden|room|street|road|chapel|inn|hall|station|dock|square|cafe|restaurant|tavern|apartment|flat)\b/i;
-const OBJECT_NOUN = /\b(coat|ring|watch|photograph|photo|letter|box|coin|dog|cat|book|dress|hat|knife|spoon|pot|pan|piano|violin|car|bicycle|bike|boat|necklace|locket|quilt|blanket|clock)\b/i;
+const OBJECT_NOUN = /\b(coat|ring|watch|photograph|photo|letter|box|coin|dog|cat|book|dress|hat|knife|spoon|pot|pan|piano|violin|car|bicycle|bike|boat|necklace|locket|quilt|blanket|(?<!o['’])clock)\b/i;
 
 function sentences(text: string): string[] {
   return String(text || '').replace(/\s+/g, ' ').split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter((s) => s.length > 1);
 }
 function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
 function titleCase(s: string): string { return s.replace(/\b\w/g, (c) => c.toUpperCase()); }
+/** clip a label at a word boundary — never leaves a name cut mid-sentence like "…and he". */
+function clip(s: string, n: number): string {
+  if (s.length <= n) return s;
+  const cut = s.slice(0, n - 1);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > n * 0.5 ? cut.slice(0, sp) : cut).replace(/[\s,;:—-]+$/, '') + '…';
+}
 
 /** Tidy the person's words into an inscription — trim fillers, keep her voice. */
 export function cleanInscription(text: string): string {
@@ -84,23 +91,23 @@ export function offlineExtract(text: string, ctx: { knownNames?: string[]; perso
 
     // SAYING — quoted speech or "always said"
     const sayM = sent.match(/["“]([^"”]{4,})["”]/) || (/\b(always said|used to say|would say)\b/i.test(sent) ? [sent, sent] as any : null);
-    if (sayM) push({ type: 'saying', name: (sayM[1] || sent).slice(0, 60), detail: cap(sent), quote: sent, valence: 0.5, salience: 0.62 });
+    if (sayM) push({ type: 'saying', name: clip(sayM[1] || sent, 60), detail: cap(sent), quote: sent, valence: 0.5, salience: 0.62 });
 
     // VALUE — a belief / rule
     if (/\b(never|always|you have to|you must|the important thing|what matters|believe|taught me)\b/i.test(sent) && !sayM) {
-      push({ type: 'value', name: cap(sent).slice(0, 60), detail: cap(sent), quote: sent, valence: 0.55, salience: 0.7 });
+      push({ type: 'value', name: clip(cap(sent), 60), detail: cap(sent), quote: sent, valence: 0.55, salience: 0.7 });
     }
 
     // EVENT — a life verb
     const evM = low.match(/\b(crossed|married|escaped|survived|born|moved|emigrated|opened|built|buried|fled|fought|worked|lost|left|arrived|met)\b/);
     if (evM && !yearM && !streetM) {
-      push({ type: 'event', name: cap(sent).slice(0, 70), detail: cap(sent), quote: sent, valence: 0.4, salience: 0.6 });
+      push({ type: 'event', name: clip(cap(sent), 70), detail: cap(sent), quote: sent, valence: 0.4, salience: 0.6 });
     }
   }
 
   // never drop a telling on the floor — if nothing matched, keep the utterance as an event tile
   if (!records.length && whole.trim().length > 3) {
-    records.push({ type: 'event', name: cap(whole.trim()).slice(0, 70), detail: cleanInscription(whole), quote: whole.trim(), salience: 0.4 });
+    records.push({ type: 'event', name: clip(cap(whole.trim()), 70), detail: cleanInscription(whole), quote: whole.trim(), salience: 0.4 });
   }
 
   return { records: records.slice(0, 6), inscription: cleanInscription(whole) };

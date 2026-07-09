@@ -10,6 +10,7 @@ import type { ExtractedRecord } from '@/lib/llm/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 /* Trove's life-memory as a reusable tool surface: remember · recall · reconcile · next-question ·
    gild · forget. The SAME endpoints power the app, the standalone MCP server (mcp/server.mjs),

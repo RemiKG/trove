@@ -11,6 +11,7 @@ import { estimateTokens } from '@/lib/memory/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 /** Budgeted recall — the core path. Embed the question, pull + rerank candidates, admit gilded
     canon first under a hard token budget, answer ONLY from the recalled tiles (never the

@@ -44,14 +44,17 @@ export function detectContradictions(bundle: TroveBundle, askedInSession: number
   const active = bundle.tesserae.filter((t) => !t.superseded && !t.dusted);
   const groups = new Map<string, Tessera[]>();
   for (const t of active) {
-    const key = subjectKey(t);
-    if (!key || key.length < 3) continue;
+    const subj = subjectKey(t);
+    if (!subj || subj.length < 3) continue;
+    // same subject AND same kind — a date about Wilbur never contradicts a place about Wilbur
+    const key = `${t.type}|${subj}`;
     (groups.get(key) || groups.set(key, []).get(key)!).push(t);
   }
 
   const raised: Contradiction[] = [];
-  for (const [key, group] of groups) {
+  for (const [typedKey, group] of groups) {
     if (group.length < 2) continue;
+    const key = typedKey.slice(typedKey.indexOf('|') + 1);
     // distinct, non-empty values within the same subject & compatible type
     const byValue = new Map<string, Tessera[]>();
     for (const t of group) {
@@ -60,6 +63,9 @@ export function detectContradictions(bundle: TroveBundle, askedInSession: number
       (byValue.get(v) || byValue.set(v, []).get(v)!).push(t);
     }
     if (byValue.size < 2) continue;
+    // one telling is one witness — different facets of a single turn are not a contradiction
+    const turns = new Set([...byValue.values()].flat().map((t) => t.firstToldT));
+    if (turns.size < 2) continue;
 
     // already tracked (open or resolved) for this subject? skip.
     const existing = bundle.contradictions.find(

@@ -8,6 +8,7 @@ import { estimateTokens } from '@/lib/memory/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 /** The live flip: the SAME question, memory ON then OFF, on the user's own trove.
     ON = budgeted recall over the reconciled store; OFF = a goldfish replaying the whole transcript,

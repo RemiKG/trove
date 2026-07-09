@@ -2,12 +2,15 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import TopBar from '@/components/TopBar';
+import { LoadFailed } from '@/components/ui';
 import { api, fmt, whoSub, type TroveView } from '@/lib/client/api';
 
 export default function NumbersPage() {
   const { id } = useParams<{ id: string }>();
   const [view, setView] = useState<TroveView | null>(null);
-  useEffect(() => { api.view(id).then(setView).catch(() => {}); }, [id]);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { api.view(id).then(setView).catch(() => setFailed(true)); }, [id]);
+  if (failed) return <LoadFailed />;
   if (!view) return <div className="page"><div className="wrap section" style={{ textAlign: 'center', paddingTop: 120 }}><span className="spinner" style={{ width: 28, height: 28 }} /></div></div>;
   const t = view.trove;
   const n = view.numbers;

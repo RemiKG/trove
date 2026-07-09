@@ -61,8 +61,11 @@ export function mergeRecords(
     const embedText = tesseraEmbedText({ type: rec.type, name: rec.name, detail, quote: rec.quote, subject: rec.subject, value: rec.value });
     const vec = localEmbed(embedText);
     const existing = findExisting(bundle, rec, vec);
+    // a re-telling that carries a DIFFERENT specific value is NOT corroboration — it must live
+    // as its own tile so the contradiction is raised and reconciled, never silently absorbed.
+    const conflicts = !!(existing && rec.value && existing.value && normName(rec.value) !== normName(existing.value));
 
-    if (existing) {
+    if (existing && !conflicts) {
       // corroboration — a second telling confirms it
       existing.corroborationCount += 1;
       existing.lastTold = ref;
@@ -111,6 +114,7 @@ export function mergeRecords(
         updatedAt: now,
       };
       if (rec.subject) tess.subject = rec.subject;
+      else if (conflicts && existing?.subject) tess.subject = existing.subject; // group with the tile it contradicts
       if (rec.value) tess.value = rec.value;
       maybeAutoGild(tess);
       bundle.tesserae.push(tess);

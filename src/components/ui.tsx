@@ -1,4 +1,6 @@
 'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Swatch from './mosaic/Swatch';
 
 export function Chip({ type, label }: { type: string; label: string }) {
@@ -54,4 +56,48 @@ export function MicIcon() {
 /** a small formatted mono number */
 export function Num({ children }: { children: React.ReactNode }) {
   return <span className="num">{children}</span>;
+}
+
+/** honest note shown ONLY on the hosted serverless mirror, where the file store is ephemeral. */
+export function EphemeralNote({ mode }: { mode: { ephemeral?: boolean; durableUrl?: string | null } | null }) {
+  if (!mode?.ephemeral) return null;
+  return (
+    <div className="card" style={{ padding: '12px 18px', marginTop: 16, borderLeft: '3px solid var(--gold-ink)' }}>
+      <p className="muted" style={{ fontSize: 13.5, lineHeight: 1.5, margin: 0 }}>
+        <b style={{ color: 'var(--grout)' }}>Hosted demo mirror.</b> This instance keeps troves on
+        ephemeral serverless storage, so a trove made here may not survive between visits. The
+        durable deployment keeps every trove on a real disk
+        {mode.durableUrl ? <> — <a href={mode.durableUrl} style={{ color: 'var(--gold-ink)' }}>{mode.durableUrl.replace(/^https?:\/\//, '')}</a></> : null}.
+      </p>
+    </div>
+  );
+}
+
+/** a visible dead-end instead of an endless spinner when a trove can't be loaded. */
+export function LoadFailed() {
+  const [mode, setMode] = useState<any>(null);
+  useEffect(() => {
+    fetch('/api/mode').then((r) => r.json()).then(setMode).catch(() => {});
+  }, []);
+  return (
+    <div className="page"><div className="stage"><div className="wrap section" style={{ maxWidth: 620, paddingTop: 100 }}>
+      <div className="card pad">
+        <div className="h-emo" style={{ fontSize: 26, marginBottom: 10 }}>This trove couldn’t be opened.</div>
+        <p className="muted" style={{ fontSize: 15.5, lineHeight: 1.55, margin: 0 }}>
+          {mode?.ephemeral
+            ? 'This hosted mirror keeps troves on ephemeral serverless storage, so a trove made here can be lost between visits. Nothing you can do differently — it’s a limit of the mirror, not of Trove.'
+            : 'It may have been removed, or the link is wrong.'}
+        </p>
+        {mode?.ephemeral && mode?.durableUrl && (
+          <p className="muted" style={{ fontSize: 15.5, lineHeight: 1.55, marginTop: 10 }}>
+            The durable deployment keeps every trove on a real disk:{' '}
+            <a href={mode.durableUrl} style={{ color: 'var(--gold-ink)' }}>{mode.durableUrl.replace(/^https?:\/\//, '')}</a>
+          </p>
+        )}
+        <div style={{ marginTop: 18 }}>
+          <Link className="btn ghost" href="/">← Back to the door</Link>
+        </div>
+      </div>
+    </div></div></div>
+  );
 }

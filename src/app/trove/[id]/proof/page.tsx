@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import TopBar from '@/components/TopBar';
+import { LoadFailed } from '@/components/ui';
 import { api, fmt, whoSub, type TroveView } from '@/lib/client/api';
 
 export default function ProofPage() {
@@ -9,13 +10,15 @@ export default function ProofPage() {
   const [view, setView] = useState<TroveView | null>(null);
   const [proof, setProof] = useState<any>(null);
   const [running, setRunning] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   async function run() {
     setRunning(true);
-    try { setProof(await api.proof(id)); } finally { setRunning(false); }
+    try { setProof(await api.proof(id)); } catch { /* the view failure screen covers a missing trove */ } finally { setRunning(false); }
   }
-  useEffect(() => { api.view(id).then(setView).catch(() => {}); run(); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => { api.view(id).then(setView).catch(() => setFailed(true)); run(); /* eslint-disable-next-line */ }, [id]);
 
+  if (failed) return <LoadFailed />;
   if (!view) return <div className="page"><div className="wrap section" style={{ textAlign: 'center', paddingTop: 120 }}><span className="spinner" style={{ width: 28, height: 28 }} /></div></div>;
   const t = view.trove;
   const on = proof?.on, off = proof?.off;

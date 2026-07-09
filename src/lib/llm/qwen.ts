@@ -18,7 +18,7 @@ function authHeaders(extra: Record<string, string> = {}): Record<string, string>
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, ...extra };
 }
 
-async function withTimeout<T>(p: (signal: AbortSignal) => Promise<T>, ms = 45000): Promise<T> {
+async function withTimeout<T>(p: (signal: AbortSignal) => Promise<T>, ms = 120000): Promise<T> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
   try {

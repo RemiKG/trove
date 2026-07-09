@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import TopBar from '@/components/TopBar';
 import Portrait from '@/components/mosaic/Portrait';
-import { Chip, RampLegend, MicIcon } from '@/components/ui';
+import { Chip, RampLegend, MicIcon, LoadFailed } from '@/components/ui';
 import { useSpeech } from '@/lib/client/speech';
 import { api, fmt, type TroveView } from '@/lib/client/api';
 
@@ -21,6 +21,7 @@ export default function TellingPage() {
   const [coverage, setCoverage] = useState(0.5);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
   const speech = useSpeech((t) => setDraft((p) => (p ? p + ' ' : '') + t));
 
@@ -35,7 +36,7 @@ export default function TellingPage() {
       setSession(v.session);
       setTotals(v.totals);
       setCoverage(v.coverage);
-    }).catch(() => {});
+    }).catch(() => setFailed(true));
   }, [id]);
 
   useEffect(() => { railRef.current?.scrollTo({ top: railRef.current.scrollHeight, behavior: 'smooth' }); }, [convo]);
@@ -62,16 +63,24 @@ export default function TellingPage() {
       setSession(r.session);
       setTotals(r.totals);
       setCoverage(r.coverage);
+    } catch {
+      setConvo((c) => [...c, { role: 'trove', text: 'That telling didn’t make it into the mosaic — the call failed. Your words are still in the box below if you want to try again.' }]);
+      setDraft(text);
     } finally { setBusy(false); }
   }
 
   async function resolve(cId: string, value: string) {
-    const r = await api.reconcile(id, cId, value);
-    setPendingCatch(r.contradictions[0] || null);
-    setTotals(r.totals);
-    setConvo((c) => [...c, { role: 'trove', text: `Kept "${value}" as canon, and dusted the slip. Thank you.` }]);
+    try {
+      const r = await api.reconcile(id, cId, value);
+      setPendingCatch(r.contradictions[0] || null);
+      setTotals(r.totals);
+      setConvo((c) => [...c, { role: 'trove', text: `Kept "${value}" as canon, and dusted the slip. Thank you.` }]);
+    } catch {
+      setConvo((c) => [...c, { role: 'trove', text: 'That reconciliation didn’t save — please pick again.' }]);
+    }
   }
 
+  if (failed) return <LoadFailed />;
   if (!view) return <div className="page"><div className="wrap section" style={{ textAlign: 'center', paddingTop: 120 }}><span className="spinner" style={{ width: 28, height: 28 }} /></div></div>;
   const t = view.trove;
 
@@ -101,6 +110,13 @@ export default function TellingPage() {
                     )}
                   </div>
                 ))}
+
+                {busy && (
+                  <div className="qrow">
+                    <span className="bul"><span className="spinner" style={{ width: 14, height: 14 }} /></span>
+                    <div className="q" style={{ color: 'var(--grout-70)' }}>listening — setting that into the mosaic…</div>
+                  </div>
+                )}
 
                 {/* the catch */}
                 {pendingCatch && (
