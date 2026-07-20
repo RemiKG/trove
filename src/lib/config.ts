@@ -55,9 +55,10 @@ export interface ModeInfo {
   embedModel: string;
   rerankModel: string;
   imageModel: string;
-  store: 'file' | 'postgres';
+  store: 'file' | 'postgres' | 'blob';
   /** true when the file store sits on ephemeral serverless disk (e.g. a Vercel mirror) —
-      troves there may not survive between visits. The durable deployment has a real disk. */
+      troves there may not survive between visits. A durable store (real disk, Postgres, or
+      Vercel Blob) clears this. */
   ephemeral: boolean;
   durableUrl: string | null;
   note: string;
@@ -65,7 +66,8 @@ export interface ModeInfo {
 
 export function modeInfo(): ModeInfo {
   const brain = brainMode();
-  const ephemeral = !!process.env.VERCEL && !process.env.DATABASE_URL;
+  const durable = !!process.env.DATABASE_URL || !!process.env.BLOB_READ_WRITE_TOKEN;
+  const ephemeral = !!process.env.VERCEL && !durable;
   return {
     brain,
     ephemeral,
@@ -76,7 +78,7 @@ export function modeInfo(): ModeInfo {
     embedModel: brain === 'qwen' ? qwen.models.embed : 'trove-local-hash-v1',
     rerankModel: brain === 'qwen' ? qwen.models.rerank : 'trove-local-rerank',
     imageModel: brain === 'qwen' ? qwen.models.image : 'trove-photomosaic',
-    store: process.env.DATABASE_URL ? 'postgres' : 'file',
+    store: process.env.DATABASE_URL ? 'postgres' : process.env.BLOB_READ_WRITE_TOKEN ? 'blob' : 'file',
     note:
       brain === 'qwen'
         ? 'Live on Qwen Cloud — the telling is extracted, reconciled, embedded, reranked and interviewed on Qwen. The store is Trove’s own.'
