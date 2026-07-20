@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { loadBundle, removeTrove, persist } from '@/lib/server/troves';
+import { loadBundle, removeTrove } from '@/lib/server/troves';
 import { buildTroveView } from '@/lib/server/view';
 
 export const runtime = 'nodejs';
@@ -10,9 +10,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const bundle = await loadBundle(id);
   if (!bundle) return NextResponse.json({ error: 'trove not found' }, { status: 404 });
-  // mark it opened (drives the "last opened N weeks ago" chip; a real cold-reopen signal)
+  // mark it opened (drives the "last opened N weeks ago" chip; a real cold-reopen signal).
+  // This is a READ endpoint: we update the timestamp in-memory for the response only and do NOT
+  // persist. Writing the whole bundle back on every view is what let an eventually-consistent
+  // stale read overwrite — and permanently drop — a trove's memories. Reads must never write.
   bundle.trove.lastOpenedAt = Date.now();
-  await persist(bundle);
   return NextResponse.json(buildTroveView(bundle));
 }
 

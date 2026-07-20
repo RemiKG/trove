@@ -120,6 +120,10 @@ export interface Trove {
   seed: number;                 // portrait seed — same person → same face on every recall
   createdAt: number;
   updatedAt: number;
+  /** monotonic write revision, bumped on every persist. Used by the durable store to name
+      immutable snapshots and by the loader to pick the freshest of {in-memory cache, store}
+      on serverless — so an eventually-consistent read can never clobber a newer write. */
+  rev?: number;
   lastOpenedAt: number;
   currentSession: number;
   turnCount: number;            // global monotonic turn index

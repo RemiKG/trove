@@ -21,13 +21,25 @@ export async function ensureExample(reset = false): Promise<TroveBundle> {
 
 export async function loadBundle(id: string): Promise<TroveBundle | null> {
   if (id === EXAMPLE_ID) return ensureExample();
-  if (cache.has(id)) return cache.get(id)!;
-  const b = await getStore().get(id);
-  if (b) cache.set(id, b);
-  return b;
+  // Always consult the durable store — the per-instance cache is NOT trusted blindly, because on
+  // serverless a different instance may hold a stale (even empty, just-created) copy. But the
+  // store read can itself lag its own last write, so we take the FRESHEST of {cache, store} by
+  // rev. This is the "fresh-read-before-write" guarantee: a write is never based on stale data,
+  // and a lagging read can never clobber a newer in-memory bundle.
+  const stored = await getStore().get(id).catch(() => null);
+  const cached = cache.get(id) || null;
+  let chosen: TroveBundle | null = stored;
+  if (cached) {
+    const cr = cached.trove.rev ?? 0;
+    const sr = stored?.trove.rev ?? -1;
+    if (!stored || cr >= sr) chosen = cached;
+  }
+  if (chosen) cache.set(id, chosen);
+  return chosen;
 }
 
 export async function persist(b: TroveBundle): Promise<void> {
+  b.trove.rev = (b.trove.rev ?? 0) + 1;
   cache.set(b.trove.id, b);
   await getStore().save(b);
 }

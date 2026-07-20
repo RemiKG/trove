@@ -169,41 +169,93 @@ class PgStore implements TroveStore {
 /* Vercel Blob adapter — the durable store for the serverless Vercel deploy. Serverless splits
    route handlers and renders across separate function instances that do NOT share a /tmp disk,
    so the file store loses a fresh trove between the create request and the very next telling.
-   Blob is a shared, strongly-consistent object store, so a stranger's own trove survives cold
-   starts on the hosted URL. Activates the moment BLOB_READ_WRITE_TOKEN is set (Vercel sets it
-   automatically once a Blob store is connected). `@vercel/blob` is imported dynamically so the
-   file-store default never loads it. One JSON blob per trove, under the `troves/` prefix. */
+   Activates the moment BLOB_READ_WRITE_TOKEN is set (Vercel sets it automatically once a Blob
+   store is connected). `@vercel/blob` is imported dynamically so the file-store default never
+   loads it.
+
+   CONSISTENCY — this is the load-bearing part. Vercel Blob is NOT read-after-write consistent
+   when you OVERWRITE a blob at a fixed pathname: per Vercel's docs an overwrite "may take up to
+   60 seconds to propagate", and public reads go through the CDN. A single `troves/<id>.json`
+   blob rewritten on every save therefore lets a later read (a cold instance, the mosaic view,
+   the next telling) see a stale — often the empty just-created — bundle. Worse, any read that
+   then writes back (bumping lastOpenedAt) persisted that stale bundle and permanently dropped
+   every memory. Two writers racing on the same blob also lose updates outright.
+
+   The fix follows Vercel's own guidance to TREAT BLOBS AS IMMUTABLE: every save writes a brand
+   new, never-overwritten snapshot at `troves/<id>/<rev>-<rand>.json`. Immutable blobs have no
+   overwrite-propagation window, so reading one back is consistent. A read reconstructs the
+   trove by listing that trove's snapshots and taking the highest `rev`; the freshest of
+   {in-memory cache, store} is chosen by the loader (see loadBundle), so a lagging `list()` can
+   never surface an older-than-cache snapshot. Old snapshots are pruned best-effort. */
 class BlobStore implements TroveStore {
   private token = process.env.BLOB_READ_WRITE_TOKEN;
-  private key(id: string) {
-    const safe = id.replace(/[^a-zA-Z0-9_-]/g, '');
-    return `troves/${safe}.json`;
+  private static lastStamp = 0;
+
+  private safe(id: string) { return id.replace(/[^a-zA-Z0-9_-]/g, ''); }
+  private prefix(id: string) { return `troves/${this.safe(id)}/`; }
+  private snapKey(id: string, rev: number) {
+    return `${this.prefix(id)}${String(rev).padStart(12, '0')}-${crypto.randomUUID().slice(0, 8)}.json`;
   }
+  /** parse the rev encoded as the leading, zero-padded number of a snapshot filename. */
+  private revOf(pathname: string): number {
+    const file = pathname.split('/').pop() || '';
+    const n = parseInt(file.split('-')[0], 10);
+    return Number.isFinite(n) ? n : 0;
+  }
+  private cacheBust(url: string) { return `${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`; }
+
   private async put(key: string, body: string): Promise<void> {
     const { put } = await import('@vercel/blob');
     await put(key, body, {
       access: 'public', token: this.token, addRandomSuffix: false,
-      allowOverwrite: true, contentType: 'application/json', cacheControlMaxAge: 0,
+      allowOverwrite: false, contentType: 'application/json', cacheControlMaxAge: 0,
     });
   }
-  // Read via list()+fetch with a cache-buster + no-store so an overwritten blob is never served
-  // stale from the edge CDN — recall must see the just-saved bundle.
-  private async read(key: string): Promise<string | null> {
-    const { list } = await import('@vercel/blob');
-    const { blobs } = await list({ prefix: key, limit: 1, token: this.token });
-    const hit = blobs.find((b) => b.pathname === key) || blobs[0];
-    if (!hit) return null;
-    const r = await fetch(`${hit.url}${hit.url.includes('?') ? '&' : '?'}v=${Date.now()}`, { cache: 'no-store' });
+  private async fetchText(url: string): Promise<string | null> {
+    const r = await fetch(this.cacheBust(url), { cache: 'no-store' });
     if (!r.ok) return null;
     return await r.text();
   }
+  /** the freshest snapshot blob for a trove (highest rev; uploadedAt breaks ties). */
+  private async latestBlob(id: string): Promise<{ url: string; rev: number } | null> {
+    const { list } = await import('@vercel/blob');
+    const { blobs } = await list({ prefix: this.prefix(id), limit: 1000, token: this.token });
+    let best: { url: string; rev: number; at: number } | null = null;
+    for (const b of blobs) {
+      const rev = this.revOf(b.pathname);
+      const at = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
+      if (!best || rev > best.rev || (rev === best.rev && at > best.at)) best = { url: b.url, rev, at };
+    }
+    return best ? { url: best.url, rev: best.rev } : null;
+  }
+  /** delete every snapshot for a trove older than the newest two revs — best effort. */
+  private async prune(id: string, keepFromRev: number): Promise<void> {
+    try {
+      const { list, del } = await import('@vercel/blob');
+      const { blobs } = await list({ prefix: this.prefix(id), limit: 1000, token: this.token });
+      const stale = blobs.filter((b) => this.revOf(b.pathname) <= keepFromRev - 2).map((b) => b.url);
+      if (stale.length) await del(stale, { token: this.token });
+    } catch { /* pruning is optional; leftover snapshots are harmless */ }
+  }
+
   async list(): Promise<TroveSummary[]> {
     const { list } = await import('@vercel/blob');
     const { blobs } = await list({ prefix: 'troves/', limit: 1000, token: this.token });
-    const out: TroveSummary[] = [];
+    // group by trove id, keep the highest-rev snapshot of each
+    const newest = new Map<string, { url: string; rev: number; at: number }>();
     for (const b of blobs) {
+      const parts = b.pathname.split('/'); // ['troves', <id>, '<rev>-<rand>.json']
+      if (parts.length < 3) continue;
+      const id = parts[1];
+      const rev = this.revOf(b.pathname);
+      const at = b.uploadedAt ? new Date(b.uploadedAt).getTime() : 0;
+      const cur = newest.get(id);
+      if (!cur || rev > cur.rev || (rev === cur.rev && at > cur.at)) newest.set(id, { url: b.url, rev, at });
+    }
+    const out: TroveSummary[] = [];
+    for (const { url } of newest.values()) {
       try {
-        const raw = await this.read(b.pathname);
+        const raw = await this.fetchText(url);
         if (!raw) continue;
         const parsed = JSON.parse(raw) as TroveBundle;
         if (parsed?.trove?.id) out.push(summarize(parsed));
@@ -213,18 +265,27 @@ class BlobStore implements TroveStore {
   }
   async get(id: string): Promise<TroveBundle | null> {
     try {
-      const raw = await this.read(this.key(id));
+      const hit = await this.latestBlob(id);
+      if (!hit) return null;
+      const raw = await this.fetchText(hit.url);
       return raw ? (JSON.parse(raw) as TroveBundle) : null;
     } catch { return null; }
   }
   async save(bundle: TroveBundle): Promise<void> {
-    bundle.trove.updatedAt = Date.now();
-    await this.put(this.key(bundle.trove.id), JSON.stringify(bundle));
+    // strictly-increasing stamp so two saves in the same millisecond still order deterministically
+    const now = Math.max(Date.now(), BlobStore.lastStamp + 1);
+    BlobStore.lastStamp = now;
+    bundle.trove.updatedAt = now;
+    const rev = (bundle.trove.rev ?? 0) || 1;
+    await this.put(this.snapKey(bundle.trove.id, rev), JSON.stringify(bundle));
+    await this.prune(bundle.trove.id, rev);
   }
   async delete(id: string): Promise<void> {
     try {
-      const { del } = await import('@vercel/blob');
-      await del(this.key(id), { token: this.token });
+      const { list, del } = await import('@vercel/blob');
+      const { blobs } = await list({ prefix: this.prefix(id), limit: 1000, token: this.token });
+      const urls = blobs.map((b) => b.url);
+      if (urls.length) await del(urls, { token: this.token });
     } catch { /* ignore */ }
   }
 }
